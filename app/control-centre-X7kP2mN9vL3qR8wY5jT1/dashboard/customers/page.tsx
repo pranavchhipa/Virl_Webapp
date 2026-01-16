@@ -57,11 +57,22 @@ export default function CustomersPage() {
         setLoading(true)
         try {
             const data = await getAllUsers(page, 100, searchTerm || search)
-            // Map plan_tier from first owned workspace
-            const mappedUsers = data.users.map((u: any) => ({
-                ...u,
-                plan_tier: u.owned_workspaces?.[0]?.plan_tier || 'basic'
-            }))
+            // Map plan_tier: prefer owned workspace, fallback to member workspace
+            const mappedUsers = data.users.map((u: any) => {
+                // First check owned workspaces
+                let planTier = u.owned_workspaces?.[0]?.plan_tier
+
+                // If no owned workspaces, check member workspaces
+                if (!planTier && u.member_workspaces?.length > 0) {
+                    const memberWs = u.member_workspaces[0]?.workspace
+                    planTier = memberWs?.plan_tier
+                }
+
+                return {
+                    ...u,
+                    plan_tier: planTier || 'basic'
+                }
+            })
             setUsers(mappedUsers)
             setTotalPages(data.totalPages)
             setTotal(data.total)

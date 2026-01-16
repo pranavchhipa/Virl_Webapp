@@ -146,7 +146,8 @@ export async function getAllUsers(page = 1, limit = 20, search?: string) {
         .from('profiles')
         .select(`
             *,
-            owned_workspaces:workspaces(id, plan_tier)
+            owned_workspaces:workspaces(id, plan_tier),
+            member_workspaces:workspace_members(workspace:workspaces(id, plan_tier))
         `, { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
