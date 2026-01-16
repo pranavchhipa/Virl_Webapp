@@ -8,7 +8,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
 
     return (
         <PageWrapper>
-            <ProjectsView initialProjects={projects} />
+            <ProjectsView key={workspace || 'all'} initialProjects={projects} />
         </PageWrapper>
     )
 }

@@ -70,8 +70,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             <div className="flex-1 bg-[#f9f8fc]">
                 <div className="px-6 py-6 max-w-7xl mx-auto w-full">
                     <BentoDashboard
-                        user={user}
+                        key={workspace || 'all'}
                         projects={projects}
+                        user={user}
                         recentActivity={recentActivity || []}
                         stats={stats}
                     />
