@@ -15,10 +15,14 @@ import { useSearchParams } from "next/navigation"
 import { EmptyWorkspaceState } from "@/components/empty-workspace-state"
 import { workspaceEvents } from "@/lib/workspace-events"
 import { motion, AnimatePresence } from "framer-motion"
-import { useProjects } from "@/components/providers/projects-provider"
 
-export function ProjectsView() {
-    const { projects } = useProjects()
+
+interface ProjectsViewProps {
+    initialProjects: any[]
+}
+
+export function ProjectsView({ initialProjects }: ProjectsViewProps) {
+    const projects = initialProjects
     const [activeTab, setActiveTab] = useState("active")
     const [searchQuery, setSearchQuery] = useState("")
     const router = useRouter()

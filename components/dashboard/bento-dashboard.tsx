@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { useSearchParams } from "next/navigation"
 import { workspaceEvents } from "@/lib/workspace-events"
 import { useState, useEffect } from "react"
-import { useProjects } from "@/components/providers/projects-provider"
+
 
 import { StorageUsageCard } from "@/components/assets/storage-usage-card"
 
@@ -27,9 +27,8 @@ interface BentoDashboardProps {
     }
 }
 
-export function BentoDashboard({ projects: initialProjects, user, recentActivity, stats }: BentoDashboardProps) {
+export function BentoDashboard({ projects, user, recentActivity, stats }: BentoDashboardProps) {
     const searchParams = useSearchParams()
-    const { projects } = useProjects()
     const [currentWorkspace, setCurrentWorkspace] = useState<string | null>(null)
 
     // Format bytes to GB
