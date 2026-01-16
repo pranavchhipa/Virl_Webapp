@@ -1,0 +1,246 @@
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
+@import './calendar-styles.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Canva-style Light Creative Theme */
+    --background: 0 0% 100%;
+    /* White (used as fallback/base) */
+    --foreground: 222.2 47.4% 11.2%;
+    /* Slate-900 */
+
+    --card: 0 0% 100%;
+    /* Pure White */
+    --card-foreground: 222.2 47.4% 11.2%;
+    /* Slate-900 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    --primary: 262.1 83.3% 57.8%;
+    /* Violet-600 #7c3aed */
+    --primary-foreground: 210 40% 98%;
+
+    /* FORCED WHITE OVERRIDES */
+    --secondary: 0 0% 100%;
+    /* Pure White */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 0 0% 100%;
+    /* Pure White */
+    --muted-foreground: 215 16% 47%;
+    /* Slate-500 */
+
+    --accent: 0 0% 100%;
+    /* Pure White */
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    /* Slate-200 */
+    --input: 214.3 31.8% 91.4%;
+    /* Slate-200 */
+    --ring: 262.1 83.3% 57.8%;
+    /* Violet-600 */
+
+    --radius: 0.75rem;
+  }
+
+  /* Proper Dark Mode Theme */
+  .dark {
+    --background: 222.2 84% 4.9%;
+    /* Deep navy black */
+    --foreground: 210 40% 98%;
+    /* Off-white */
+
+    --card: 222.2 84% 6.5%;
+    /* Slightly lighter than bg */
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 6.5%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 263.4 70% 50.4%;
+    /* Violet-500 */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    /* Slate-800 */
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    /* Slate-800 */
+    --muted-foreground: 215 20.2% 65.1%;
+    /* Slate-400 */
+
+    --accent: 217.2 32.6% 17.5%;
+    /* Slate-800 */
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    /* Dark red */
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    /* Slate-800 */
+    --input: 217.2 32.6% 17.5%;
+    /* Slate-800 */
+    --ring: 263.4 70% 50.4%;
+    /* Violet-500 */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply text-foreground antialiased tracking-tight;
+    /* Aurora Gradient - Light Mode */
+    background-image: radial-gradient(at 0% 0%, hsla(180, 70%, 85%, 1) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(270, 70%, 90%, 1) 0px, transparent 50%),
+      linear-gradient(to bottom, #ffffff, #f8fafc);
+    background-attachment: fixed;
+    /* Ensures gradient stays while scrolling */
+    background-repeat: no-repeat;
+    min-height: 100vh;
+  }
+
+  /* Dark Mode Body Background */
+  .dark body,
+  body.dark {
+    background-image:
+      radial-gradient(at 0% 0%, hsla(270, 70%, 15%, 0.4) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(220, 70%, 10%, 0.4) 0px, transparent 50%),
+      linear-gradient(to bottom, hsl(222.2 84% 4.9%), hsl(217.2 32.6% 8%));
+    background-color: hsl(222.2 84% 4.9%);
+  }
+}
+
+@keyframes float-cover {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-100px);
+  }
+}
+
+.animate-float-cover {
+  animation: float-cover 5s ease-in-out infinite;
+}
+
+@layer base {
+  :root {
+    /* Lovable Brand Colors */
+    --primary-purple: 265 89% 62%;
+    --deep-indigo: 250 84% 54%;
+    --slate-dark: 222 47% 11%;
+    --warm-white: 0 0% 99%;
+
+    /* Modern Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(265 89% 62%) 0%, hsl(250 84% 54%) 50%, hsl(280 85% 55%) 100%);
+    --gradient-hero: radial-gradient(ellipse at top, hsl(265 89% 62% / 0.15) 0%, transparent 50%);
+    --gradient-text: linear-gradient(135deg, hsl(265 89% 62%) 0%, hsl(250 84% 54%) 100%);
+    --gradient-mesh: radial-gradient(at 40% 20%, hsl(265 89% 62% / 0.1) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsl(250 84% 54% / 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsl(280 85% 55% / 0.1) 0px, transparent 50%);
+
+    /* Modern Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.04);
+    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.06), 0 2px 4px -2px hsl(222 47% 11% / 0.06);
+    --shadow-lg: 0 10px 25px -3px hsl(222 47% 11% / 0.08), 0 4px 6px -4px hsl(222 47% 11% / 0.04);
+    --shadow-xl: 0 25px 50px -12px hsl(222 47% 11% / 0.15);
+    --shadow-glow: 0 0 60px hsl(265 89% 62% / 0.4);
+    --shadow-glow-lg: 0 0 80px hsl(265 89% 62% / 0.5);
+  }
+}
+
+@layer utilities {
+  .gradient-text {
+    @apply bg-clip-text text-transparent;
+    background-image: var(--gradient-text);
+  }
+
+  .gradient-bg {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-bg-hover {
+    background: linear-gradient(135deg, hsl(265 89% 55%) 0%, hsl(250 84% 48%) 50%, hsl(280 85% 50%) 100%);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-glow-lg {
+    box-shadow: var(--shadow-glow-lg);
+  }
+
+  .glass {
+    @apply bg-card/70 backdrop-blur-xl border border-white/20;
+    box-shadow: 0 8px 32px 0 hsl(222 47% 11% / 0.04);
+  }
+
+  .glass-card {
+    @apply bg-card/90 backdrop-blur-xl border border-white/30;
+    box-shadow: 0 8px 32px 0 hsl(222 47% 11% / 0.06),
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.1);
+  }
+
+  .mesh-gradient {
+    background: var(--gradient-mesh);
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl font-medium text-primary-foreground transition-all duration-300 ease-out;
+    background: var(--gradient-primary);
+    box-shadow: 0 4px 14px 0 hsl(265 89% 62% / 0.35);
+  }
+
+  .btn-primary:hover {
+    @apply scale-[1.02];
+    box-shadow: 0 6px 20px 0 hsl(265 89% 62% / 0.45);
+    background: linear-gradient(135deg, hsl(265 89% 55%) 0%, hsl(250 84% 48%) 50%, hsl(280 85% 50%) 100%);
+  }
+
+  .btn-primary:active {
+    @apply scale-[0.98];
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2.5 px-7 py-3.5 rounded-2xl font-medium border border-border text-foreground bg-card transition-all duration-300 ease-out;
+    box-shadow: 0 2px 8px 0 hsl(222 47% 11% / 0.04);
+  }
+
+  .btn-secondary:hover {
+    @apply bg-muted border-primary/30;
+    box-shadow: 0 4px 12px 0 hsl(222 47% 11% / 0.08);
+  }
+
+  .card-hover {
+    @apply transition-all duration-500 ease-out;
+  }
+
+  .card-hover:hover {
+    @apply -translate-y-2;
+    box-shadow: 0 20px 40px -12px hsl(222 47% 11% / 0.12);
+  }
+
+  .section-padding {
+    @apply py-24 lg:py-36;
+  }
+}

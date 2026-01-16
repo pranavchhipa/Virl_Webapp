@@ -1,0 +1,156 @@
+/* OVERRIDE ALL REACT-BIG-CALENDAR BORDERS - FORCE LIGHT */
+
+/* Kill that ugly black border! */
+.rbc-calendar,
+.rbc-month-view,
+.rbc-time-view,
+.rbc-agenda-view,
+.rbc-month-view>div,
+.rbc-time-view>div,
+div[class*="rbc"] {
+  border: none !important;
+  background: white !important;
+}
+
+/* Calendar wrapper - clean shadow instead of border */
+.rbc-calendar {
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+  background: white !important;
+}
+
+/* Header - super light */
+.rbc-header {
+  background: #fafafa !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  border-right: none !important;
+  color: #64748b !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  padding: 16px 8px !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Day cells - barely visible lines */
+.rbc-day-bg {
+  background: white !important;
+  border: 1px solid #f7f7f7 !important;
+}
+
+.rbc-day-bg:hover {
+  background: #fafafa !important;
+}
+
+.rbc-off-range-bg {
+  background: #fcfcfc !important;
+}
+
+.rbc-today {
+  background: #f5f3ff !important;
+}
+
+/* Date numbers - clean */
+.rbc-date-cell {
+  padding: 8px 12px !important;
+  text-align: right !important;
+}
+
+.rbc-date-cell>a,
+.rbc-date-cell>button {
+  color: #334155 !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+.rbc-off-range .rbc-date-cell>a,
+.rbc-off-range .rbc-date-cell>button {
+  color: #cbd5e1 !important;
+}
+
+/* Month rows - no borders! */
+.rbc-month-row {
+  border: none !important;
+  background: white !important;
+}
+
+.rbc-month-row+.rbc-month-row {
+  border-top: 1px solid #f0f0f0 !important;
+}
+
+/* Events - make them look like Hootsuite cards */
+.rbc-event {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+.rbc-event-content {
+  padding: 0 !important;
+}
+
+/* Time grid for week/day view */
+.rbc-time-header {
+  background: white !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+}
+
+.rbc-time-content {
+  border: none !important;
+  background: white !important;
+}
+
+.rbc-time-slot {
+  border-top: 1px solid #f7f7f7 !important;
+}
+
+.rbc-day-slot {
+  border-left: 1px solid #f0f0f0 !important;
+}
+
+.rbc-time-header-content {
+  border-left: 1px solid #f0f0f0 !important;
+}
+
+/* Toolbar hidden */
+.rbc-toolbar {
+  display: none !important;
+}
+
+/* Agenda view */
+.rbc-agenda-view {
+  background: white !important;
+  border: none !important;
+}
+
+.rbc-agenda-table {
+  border: none !important;
+}
+
+.rbc-agenda-date-cell,
+.rbc-agenda-time-cell,
+.rbc-agenda-event-cell {
+  border-bottom: 1px solid #f7f7f7 !important;
+  padding: 12px 16px !important;
+}
+
+/* Remove ALL default borders globally */
+.rbc-month-view *,
+.rbc-time-view *,
+.rbc-agenda-view *,
+.rbc-calendar * {
+  border-color: #f0f0f0 !important;
+}
+
+/* Force light theme even in dark mode */
+@media (prefers-color-scheme: dark) {
+
+  .rbc-calendar,
+  .rbc-calendar * {
+    background: white !important;
+    color: #334155 !important;
+    border-color: #f0f0f0 !important;
+  }
+}

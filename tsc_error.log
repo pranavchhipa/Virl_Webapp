@@ -1,0 +1,6 @@
+﻿.next/types/app/api/review-links/[token]/view/route.ts(166,7): error TS2344: Type '{ __tag__: "POST"; __param_position__: "second"; __param_type__: { params: { token: string; }; }; }' does not satisfy the constraint 'ParamCheck<RouteContext>'.
+  The types of '__param_type__.params' are incompatible between these types.
+    Type '{ token: string; }' is missing the following properties from type 'Promise<any>': then, catch, finally, [Symbol.toStringTag]
+app/(dashboard)/projects/[id]/settings/page.tsx(181,69): error TS2554: Expected 1 arguments, but got 3.
+app/api/generate-tasks/route.ts(73,31): error TS18046: 'object' is of type 'unknown'.
+app/api/generate-tasks/route.ts(73,48): error TS7006: Parameter 't' implicitly has an 'any' type.
