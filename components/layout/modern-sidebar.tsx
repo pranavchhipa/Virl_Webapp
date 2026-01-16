@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import {
     LayoutDashboard,
     FolderKanban,
@@ -31,6 +31,7 @@ const navigation = [
 export function ModernSidebar() {
     const pathname = usePathname()
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [collapsed, setCollapsed] = useState(false)
     const [loading, setLoading] = useState(false)
     const [helpPanelOpen, setHelpPanelOpen] = useState(false)
@@ -81,6 +82,15 @@ export function ModernSidebar() {
         } finally {
             setLoading(false)
         }
+    }
+
+    // Helper to construct href with current workspace param
+    const getHref = (path: string) => {
+        const workspaceId = searchParams?.get('workspace')
+        if (workspaceId) {
+            return `${path}?workspace=${workspaceId}`
+        }
+        return path
     }
 
     return (
@@ -138,7 +148,7 @@ export function ModernSidebar() {
                     return (
                         <Link
                             key={item.name}
-                            href={item.href}
+                            href={getHref(item.href)}
                             title={collapsed ? item.name : undefined}
                             className={cn(
                                 "flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden font-medium text-sm",
