@@ -83,7 +83,10 @@ function UsageBar({ current, max, label, icon: Icon, color }: {
 
 import { requestEnterprisePlan } from '@/app/actions/billing'
 
+import { useRouter } from 'next/navigation'
+
 export default function BillingPage() {
+    const router = useRouter()
     const supabase = createClient()
     const [loading, setLoading] = useState(true)
     const [contactLoading, setContactLoading] = useState(false)
@@ -108,41 +111,22 @@ export default function BillingPage() {
                     .limit(1)
 
                 if (!workspaces || workspaces.length === 0) {
-                    // User doesn't own any workspace - check if member
-                    const { data: memberWorkspaces } = await supabase
-                        .from('workspace_members')
-                        .select('workspace:workspaces(id, plan_tier, owner_id, subscription_end_date)')
-                        .eq('user_id', user.id)
-                        .limit(1)
-
-                    if (!memberWorkspaces || memberWorkspaces.length === 0) {
-                        setLoading(false)
-                        return
-                    }
-
-                    const ws = memberWorkspaces[0].workspace as any
-                    setWorkspaceId(ws.id)
-                    setIsOwner(false)
-
-                    // Load usage for this workspace
-                    const [storage, sparks] = await Promise.all([
-                        getWorkspaceStorage(ws.id),
-                        getVixiUsage(ws.id)
-                    ])
-
+                    // User doesn't own any workspace - Set View to BASIC
                     setUsage({
-                        sparks: { count: sparks.sparkCount, limit: sparks.limit },
+                        sparks: { count: 0, limit: PLAN_LIMITS['basic'].vixiSparksPerMonth },
                         storage: {
-                            used: storage.used,
-                            limit: storage.limit,
-                            usedFormatted: storage.usedFormatted,
-                            limitFormatted: storage.limitFormatted
+                            used: 0,
+                            limit: PLAN_LIMITS['basic'].storageGB * 1024 * 1024 * 1024,
+                            usedFormatted: '0 B',
+                            limitFormatted: formatBytes(PLAN_LIMITS['basic'].storageGB * 1024 * 1024 * 1024)
                         },
                         members: 0,
                         workspaces: 0,
-                        planTier: storage.planTier,
-                        renewalDate: ws.subscription_end_date
+                        planTier: 'basic',
+                        renewalDate: null
                     })
+                    setIsOwner(true) // User owns their account
+                    setWorkspaceId(null)
                 } else {
                     const ws = workspaces[0]
                     setWorkspaceId(ws.id)
@@ -209,6 +193,12 @@ export default function BillingPage() {
     }
 
     async function handleUpgrade() {
+        if (!workspaceId) {
+            toast.error('You need to create a workspace first to upgrade.')
+            router.push('/workspaces/new')
+            return
+        }
+
         if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID) {
             toast.error('Razorpay is not configured (Missing Key ID)')
             return
