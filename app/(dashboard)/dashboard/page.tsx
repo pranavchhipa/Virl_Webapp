@@ -5,7 +5,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { getUserProjects } from "@/app/actions/dashboard"
 import { FeedbackWidget } from "@/components/feedback/feedback-widget"
 
-export default async function DashboardPage({ searchParams }: { searchParams: { workspace?: string } }) {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ workspace?: string }> }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -13,8 +13,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: { 
         redirect('/login')
     }
 
-    const workspaceId = searchParams?.workspace
-    const projects = await getUserProjects(workspaceId)
+    const { workspace } = await searchParams
+    const projects = await getUserProjects(workspace)
 
     // Get filtered project IDs
     const projectIds = projects.map(p => p.id)
