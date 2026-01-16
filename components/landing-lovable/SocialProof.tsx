@@ -10,10 +10,10 @@ const stats = [
 ];
 
 const trustedPartners = [
-  { name: "Rectangled", logo: "/assets/logos/rectangled-logo.png" },
-  { name: "MakeMyTrip", logo: "/assets/logos/makemytrip-logo.png" },
-  { name: "Savaari", logo: "/assets/logos/savaari-logo.png" },
-  { name: "JoinDevOps", logo: "/assets/logos/joindevops-logo.png" },
+  { name: "Rectangled", logo: "/assets/rectangled-logo.png" },
+  { name: "MakeMyTrip", logo: "/assets/makemytrip-logo.png" },
+  { name: "Savaari", logo: "/assets/savaari-logo.png" },
+  { name: "JoinDevOps", logo: "/assets/joindevops-logo.png" },
 ];
 
 const SocialProof = () => {
@@ -92,7 +92,7 @@ const SocialProof = () => {
               className="group px-8 py-5 rounded-2xl hover:bg-muted/50 transition-all duration-300 flex items-center justify-center"
             >
               <img
-                src="/assets/logos/joindevops-logo.png"
+                src="/assets/joindevops-logo.png"
                 alt="JoinDevOps"
                 className="h-14 md:h-16 lg:h-20 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-300"
               />

@@ -121,28 +121,7 @@ const Hero = () => {
         </motion.div>
       </motion.div>
 
-      <motion.div
-        className="absolute top-[40%] left-[38%] hidden lg:block z-10"
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ delay: 1, duration: 0.6 }}
-      >
-        <motion.div
-          animate={{ y: [5, -10, 5], rotate: [-1, 2, -1] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          className="px-4 py-3 rounded-2xl bg-card/90 backdrop-blur-xl border border-border/50 shadow-xl"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-              <Users className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Active Teams</p>
-              <p className="text-lg font-bold text-foreground">2,500+</p>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
+      {/* Active Teams badge removed to fix overlap with background lines */}
 
       <motion.div
         className="absolute top-[55%] left-1/2 hidden lg:block z-10"
