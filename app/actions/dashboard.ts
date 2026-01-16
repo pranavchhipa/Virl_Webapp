@@ -16,7 +16,7 @@ export interface DashboardProject {
     team?: any[] // We might fetch this later
 }
 
-export async function getUserProjects(): Promise<DashboardProject[]> {
+export async function getUserProjects(workspaceId?: string): Promise<DashboardProject[]> {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -24,6 +24,49 @@ export async function getUserProjects(): Promise<DashboardProject[]> {
         redirect('/login')
     }
 
+    // If workspaceId is provided, simpler logic:
+    if (workspaceId) {
+        // Check user's role in this workspace
+        const { data: membership } = await supabase
+            .from('workspace_members')
+            .select('role')
+            .eq('workspace_id', workspaceId)
+            .eq('user_id', user.id)
+            .single()
+
+        if (!membership) return [] // Not a member
+
+        const isAdmin = membership.role === 'owner' || membership.role === 'admin'
+
+        let query = supabase
+            .from('projects')
+            .select('*, project_members!inner(user_id)')
+            .eq('workspace_id', workspaceId)
+            .order('created_at', { ascending: false })
+
+        if (!isAdmin) {
+            // If not admin, restrict to projects where they are a member
+            query = query.eq('project_members.user_id', user.id)
+        } else {
+            // If admin, we want ALL projects. 
+            // But the !inner join above forces user to be a member!
+            // We need to remove the !inner constraint or change the query structure for admins.
+
+            // Correct query for Admin: All projects in workspace
+            const { data: adminProjects } = await supabase
+                .from('projects')
+                .select('*')
+                .eq('workspace_id', workspaceId)
+                .order('created_at', { ascending: false })
+
+            return (adminProjects || []) as DashboardProject[]
+        }
+
+        const { data } = await query
+        return (data || []) as DashboardProject[]
+    }
+
+    // --- Legacy "All Projects" Logic (if no workspace selected) ---
     // 1. Get workspace roles to identify where user is Admin/Owner
     const { data: workspaceMemberships } = await supabase
         .from('workspace_members')
@@ -33,25 +76,6 @@ export async function getUserProjects(): Promise<DashboardProject[]> {
     const adminWorkspaceIds = (workspaceMemberships || [])
         .filter(m => m.role === 'owner' || m.role === 'admin')
         .map(m => m.workspace_id)
-
-    // 2. Build the query
-    let query = supabase
-        .from('projects')
-        .select(`
-            *,
-            project_members!inner(user_id)
-        `)
-        .order('created_at', { ascending: false })
-
-    // If user has admin workspaces, we want projects from those workspaces OR projects where they are assigned.
-    // However, OR conditions with relation filters in Supabase can be tricky.
-    // Simplified approach:
-    // If Admin in Workspace A: they should see ALL projects in A.
-    // If Member in Workspace B: they should see ONLY assigned projects in B.
-
-    // We can fetch in two parallel requests if needed, or construct a filter.
-    // Actually, RLS is the best place for this. Assuming RLS isn't fully set up for "Admin sees all", 
-    // we will fetch all projects the user is explicitly assigned to, AND all projects in admin workspaces.
 
     // Fetch 1: Assigned Projects
     const { data: assignedProjects } = await supabase
@@ -65,7 +89,7 @@ export async function getUserProjects(): Promise<DashboardProject[]> {
     if (adminWorkspaceIds.length > 0) {
         const { data: adminProjects } = await supabase
             .from('projects')
-            .select('*, project_members(user_id)') // just to match shape, though not needed for auth
+            .select('*, project_members(user_id)')
             .in('workspace_id', adminWorkspaceIds)
 
         if (adminProjects) {

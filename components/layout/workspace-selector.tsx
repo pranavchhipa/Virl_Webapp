@@ -87,6 +87,12 @@ export function WorkspaceSelector({ collapsed }: WorkspaceSelectorProps) {
         localStorage.setItem('selectedWorkspaceId', workspace.id)
         workspaceEvents.emit('workspace-switched', { workspaceId: workspace.id })
         setIsOpen(false)
+
+        // Update URL to persist workspace selection for server components
+        const params = new URLSearchParams(window.location.search)
+        params.set('workspace', workspace.id)
+        router.push(`${window.location.pathname}?${params.toString()}`)
+
         // Force page refresh to reload server-side data for new workspace
         router.refresh()
     }

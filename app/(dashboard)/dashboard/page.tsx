@@ -5,7 +5,7 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { getUserProjects } from "@/app/actions/dashboard"
 import { FeedbackWidget } from "@/components/feedback/feedback-widget"
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: { workspace?: string } }) {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
@@ -13,12 +13,17 @@ export default async function DashboardPage() {
         redirect('/login')
     }
 
-    const projects = await getUserProjects()
+    const workspaceId = searchParams?.workspace
+    const projects = await getUserProjects(workspaceId)
 
-    // Fetch recent activity
+    // Get filtered project IDs
+    const projectIds = projects.map(p => p.id)
+
+    // Fetch recent activity (Filtered by projects)
     const { data: recentActivity } = await supabase
         .from('assets')
         .select('*, uploader:uploader_id(full_name), project:project_id(name)')
+        .in('project_id', projectIds) // Filter by workspace projects
         .order('created_at', { ascending: false })
         .limit(10)
 
@@ -26,6 +31,7 @@ export default async function DashboardPage() {
     const { data: storageData } = await supabase
         .from('assets')
         .select('file_size')
+        .in('project_id', projectIds) // Filter by workspace projects
 
     // Calculate total storage from file_size column
     const totalStorageBytes = storageData?.reduce((acc, asset) => acc + (asset.file_size || 0), 0) || 0
@@ -34,7 +40,7 @@ export default async function DashboardPage() {
     const { data: teamMembers } = await supabase
         .from('project_members')
         .select('user_id, profiles(full_name, avatar_url)')
-        .in('project_id', projects.map(p => p.id))
+        .in('project_id', projectIds)
 
     const uniqueMembers = teamMembers
         ? Array.from(new Map(teamMembers.map(m => [m.user_id, m.profiles])).values())
@@ -45,6 +51,7 @@ export default async function DashboardPage() {
         .from('assets')
         .select('*', { count: 'exact', head: true })
         .eq('status', 'pending')
+        .in('project_id', projectIds) // Filter by workspace projects
 
     const stats = {
         storageUsed: totalStorageBytes,
