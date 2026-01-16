@@ -73,7 +73,7 @@ export function WorkspaceSelector({ collapsed }: WorkspaceSelectorProps) {
             setSelectedWorkspace(selected)
 
             if (selected) {
-                workspaceEvents.emit('workspace-switched', selected.id)
+                workspaceEvents.emit('workspace-switched', { workspaceId: selected.id })
             }
         } catch (error) {
             console.error('Error loading workspaces:', error)
@@ -85,8 +85,10 @@ export function WorkspaceSelector({ collapsed }: WorkspaceSelectorProps) {
     function selectWorkspace(workspace: Workspace) {
         setSelectedWorkspace(workspace)
         localStorage.setItem('selectedWorkspaceId', workspace.id)
-        workspaceEvents.emit('workspace-switched', workspace.id)
+        workspaceEvents.emit('workspace-switched', { workspaceId: workspace.id })
         setIsOpen(false)
+        // Force page refresh to reload server-side data for new workspace
+        router.refresh()
     }
 
     const isOwner = (workspace: Workspace) => workspace.owner_id === currentUserId
