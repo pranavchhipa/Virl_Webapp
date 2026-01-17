@@ -4,11 +4,12 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { searchParams } = new URL(request.url);
-    const to = searchParams.get('to') || 'pinuchhipa1@gmail.com';
+    const to = searchParams.get('to') || 'hello@virl.in';
 
     // 1. Check Env Vars
     const hasKey = !!process.env.RESEND_API_KEY;
-    const mailFrom = process.env.MAIL_FROM || 'Virl <onboarding@resend.dev>';
+    // Match logic in contact.ts
+    const mailFrom = process.env.MAIL_FROM || 'Virl Team <hello@updates.virl.in>';
 
     console.log("--- EMAIL DEBUG START ---");
     console.log("Has API Key:", hasKey);

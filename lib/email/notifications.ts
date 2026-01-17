@@ -4,7 +4,7 @@ const resend = new Resend(process.env.RESEND_API_KEY!)
 
 // Email configuration
 const EMAIL_CONFIG = {
-    from: process.env.EMAIL_FROM || 'Virl <notifications@virl.in>',
+    from: process.env.EMAIL_FROM || 'Virl <hello@updates.virl.in>',
     appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 }
 

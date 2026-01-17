@@ -12,7 +12,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
     }
 
     try {
-        const mailFrom = process.env.MAIL_FROM || 'Virl <onboarding@virl.in>';
+        const mailFrom = process.env.MAIL_FROM || 'Virl <hello@updates.virl.in>';
         const dashboardUrl = process.env.NEXT_PUBLIC_APP_URL ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard` : 'https://virl.in/login';
 
         await resend.emails.send({

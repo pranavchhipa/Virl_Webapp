@@ -513,6 +513,14 @@ export function VixiChatInterface() {
                 }
             })
             setMessages(formatted)
+
+            // 🔄 SYNC AI SDK STATE: Essential for context memory!
+            setAiMessages(unique.map((m: any) => ({
+                id: m.id,
+                role: m.role,
+                content: m.content
+            })) as any)
+
             historyLoadedRef.current = true
             setIsHistoryLoaded(true)
 

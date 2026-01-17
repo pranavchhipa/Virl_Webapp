@@ -19,7 +19,9 @@ export async function submitContactForm(data: ContactFormData) {
     }
 
     try {
-        const mailFrom = process.env.MAIL_FROM || 'Virl <contact@virl.in>';
+        // Use environment variable for sender, defaulting to the one likely to be verified
+        // If 'virl.in' is not verified on Resend, you MUST use 'onboarding@resend.dev' for testing
+        const mailFrom = process.env.MAIL_FROM || 'Virl Team <hello@updates.virl.in>';
         const supportEmail = 'hello@virl.in'; // Target email
 
         const { error } = await resend.emails.send({
