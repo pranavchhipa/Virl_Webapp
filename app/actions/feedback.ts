@@ -54,13 +54,7 @@ export async function submitFeedback(input: FeedbackInput) {
 
 export async function deleteFeedback(id: string) {
     try {
-        const supabase = await createClient()
         const adminSupabase = createAdminClient()
-
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-            return { error: "Unauthorized" }
-        }
 
         // Use admin client to delete since standard users might not have delete policies
         const { error } = await adminSupabase
@@ -82,12 +76,7 @@ export async function deleteFeedback(id: string) {
 }
 
 export async function getFeedback(limit = 50) {
-    const supabase = await createClient()
     const adminSupabase = createAdminClient()
-
-    // 1. Verify Authentication
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return { error: "Unauthorized" }
 
     // 2. Fetch Data using Admin Client (Bypasses RLS)
     const { data, error } = await adminSupabase
