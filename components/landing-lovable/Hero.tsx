@@ -44,7 +44,7 @@ const Hero = () => {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <section className="relative min-h-screen flex items-start lg:items-center justify-center overflow-hidden pt-32 lg:pt-20">
       {/* Mesh Gradient Background */}
       <div className="absolute inset-0 -z-10 mesh-gradient" />
 
@@ -172,7 +172,7 @@ const Hero = () => {
         <span className="text-xs font-medium text-accent-foreground">Real-time Analytics</span>
       </motion.div>
 
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 pb-20 pt-10 lg:py-20">
         <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
           {/* Left Content */}
           <motion.div

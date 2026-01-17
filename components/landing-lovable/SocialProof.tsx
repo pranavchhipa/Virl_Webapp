@@ -11,8 +11,6 @@ const stats = [
 
 const trustedPartners = [
   { name: "Rectangled", logo: "/assets/rectangled-logo.png" },
-  { name: "MakeMyTrip", logo: "/assets/makemytrip-logo.png" },
-  { name: "Savaari", logo: "/assets/savaari-logo.png" },
   { name: "JoinDevOps", logo: "/assets/joindevops-logo.png" },
 ];
 
@@ -62,54 +60,24 @@ const SocialProof = () => {
             Trusted Partners
           </p>
 
-          {/* Row 1: First 3 logos */}
-          <div className="flex items-center justify-center gap-10 md:gap-16 lg:gap-24 mb-8">
-            {trustedPartners.slice(0, 3).map((partner, index) => (
+          {/* Partners Logos */}
+          <div className="flex items-center justify-center gap-10 md:gap-16 lg:gap-24">
+            {trustedPartners.map((partner, index) => (
               <motion.div
                 key={partner.name}
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.4 + index * 0.1 }}
-                className="group px-4 py-3 rounded-2xl hover:bg-muted/50 transition-all duration-300 flex items-center justify-center"
+                className="group px-6 py-4 rounded-2xl hover:bg-muted/50 transition-all duration-300 flex items-center justify-center"
               >
                 <img
                   src={partner.logo}
                   alt={partner.name}
-                  className="h-10 md:h-12 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-300"
+                  className="h-10 md:h-14 lg:h-16 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-300"
                 />
               </motion.div>
             ))}
-          </div>
-
-          {/* Row 2: JoinDevOps + and more */}
-          <div className="flex items-center justify-center gap-10 md:gap-16 lg:gap-24">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.6 }}
-              className="group px-8 py-5 rounded-2xl hover:bg-muted/50 transition-all duration-300 flex items-center justify-center"
-            >
-              <img
-                src="/assets/joindevops-logo.png"
-                alt="JoinDevOps"
-                className="h-14 md:h-16 lg:h-20 w-auto object-contain opacity-80 group-hover:opacity-100 transition-opacity duration-300"
-              />
-            </motion.div>
-
-            {/* And More */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.8 }}
-              className="px-5 py-2.5 rounded-full border-2 border-dashed border-border/80 bg-muted/30"
-            >
-              <span className="text-sm md:text-base font-semibold text-muted-foreground">
-                and more...
-              </span>
-            </motion.div>
           </div>
         </motion.div>
       </div>
