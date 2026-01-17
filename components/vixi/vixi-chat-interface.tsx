@@ -233,13 +233,15 @@ export function VixiChatInterface() {
                     }
                     textContent = "Here is the viral concept I generated for you:"
 
-                    // ⚡ INCREMENT SPARK USAGE on successful preview generation
+                    // ⚡ REFRESH SPARK USAGE on successful preview generation (Client-side sync)
                     if (workspaceId) {
-                        const result = await incrementVixiSpark(workspaceId)
-                        if (result.success) {
-                            setSparkUsage({ count: result.newCount, limit: result.limit })
-                        }
+                        // We fetch the usage instead of incrementing, because the server (route.ts) now increments it.
+                        const usage = await getVixiUsage(workspaceId)
+                        setSparkUsage({ count: usage.sparkCount, limit: usage.limit })
                     }
+                } else if (parsed.type === 'text') {
+                    // Explicitly handle text type
+                    textContent = parsed.message || ""
                 } else {
                     // Fallback for valid JSON but unknown type
                     textContent = parsed.message || JSON.stringify(parsed)
@@ -259,8 +261,15 @@ export function VixiChatInterface() {
                         .replace(/\\\\/g, '\\')
                 } else if (message.content.trim().startsWith('{')) {
                     // Truly broken JSON that we can't extract from
-                    toast.error("Vixi had a glitch. Please try again.")
-                    textContent = "I encountered an error generating the response."
+                    // But maybe it's valid JSON that just failed our 'message' extraction?
+                    try {
+                        // Last ditch attempt: if it parses, just dump it as string? 
+                        // No, better to show a generic error than raw code.
+                        toast.error("Vixi had a glitch. Please try again.")
+                        textContent = "I encountered an error generating the response."
+                    } catch {
+                        textContent = message.content
+                    }
                 } else {
                     // Plain text response (fallback)
                     textContent = message.content
@@ -578,7 +587,7 @@ export function VixiChatInterface() {
     // 3. Auto Scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-    }, [messages, aiMessages, step])
+    }, [messages, step])
 
 
     const handleUserSend = async (text: string, attachments?: File[]) => {

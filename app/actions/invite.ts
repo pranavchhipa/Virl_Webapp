@@ -58,9 +58,27 @@ export async function createInvitation(email: string, workspaceId: string, proje
     // 2. Generate Link
     const inviteLink = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/join?token=${invite.token}`
 
-    // 3. Send Email (Placeholder for Resend)
-    console.log(`Sending invite to ${email} with link: ${inviteLink}`)
-    // await sendInviteEmail(email, inviteLink)
+    // 3. Send Email
+    // Fetch workspace name for the email
+    const { data: wsData } = await supabase.from('workspaces').select('name').eq('id', workspaceId).single()
+    const workspaceName = wsData?.name || 'Virl Workspace'
+
+    // Fetch inviter name
+    const { data: { user } } = await supabase.auth.getUser()
+    const inviterName = user?.user_metadata?.full_name || user?.email || 'A team member'
+
+    const { sendNotification } = await import('@/lib/email/notifications')
+    await sendNotification({
+        type: 'workspace_invite',
+        recipients: [{ email }],
+        data: {
+            inviteeName: email.split('@')[0], // Fallback name
+            inviterName,
+            workspaceName,
+            role,
+            inviteUrl: inviteLink
+        }
+    })
 
     return { success: true, link: inviteLink }
 }

@@ -9,6 +9,8 @@ import { Button } from "@/components/landing-lovable/ui/button";
 import { Input } from "@/components/landing-lovable/ui/input";
 import { Textarea } from "@/components/landing-lovable/ui/textarea";
 import { toast } from "sonner";
+import { submitContactForm } from "@/app/actions/contact";
+import { Loader2 } from "lucide-react";
 
 const contactInfo = [
     {
@@ -39,10 +41,26 @@ const Contact = () => {
         message: "",
     });
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        toast.success("Message sent! We'll get back to you as soon as possible.");
-        setFormData({ name: "", email: "", subject: "", message: "" });
+        setIsSubmitting(true);
+
+        try {
+            const result = await submitContactForm(formData);
+
+            if (result.success) {
+                toast.success("Message sent! We'll get back to you as soon as possible.");
+                setFormData({ name: "", email: "", subject: "", message: "" });
+            } else {
+                toast.error(result.error || "Failed to send message.");
+            }
+        } catch (error) {
+            toast.error("Something went wrong. Please try again.");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -138,9 +156,13 @@ const Contact = () => {
                                             className="rounded-xl resize-none"
                                         />
                                     </div>
-                                    <Button type="submit" className="w-full btn-primary rounded-xl py-6">
-                                        <Send className="w-4 h-4 mr-2" />
-                                        Send Message
+                                    <Button type="submit" className="w-full btn-primary rounded-xl py-6" disabled={isSubmitting}>
+                                        {isSubmitting ? (
+                                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        ) : (
+                                            <Send className="w-4 h-4 mr-2" />
+                                        )}
+                                        {isSubmitting ? "Sending..." : "Send Message"}
                                     </Button>
                                 </form>
                             </div>

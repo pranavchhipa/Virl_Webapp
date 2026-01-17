@@ -28,6 +28,11 @@ export function SignupForm() {
                 options: { emailRedirectTo: `${window.location.origin}/auth/callback`, data: { full_name: formData.fullName } },
             })
             if (error) throw error
+
+            // Fire and forget welcome email
+            const { sendWelcomeEmail } = await import("@/app/actions/auth/email")
+            sendWelcomeEmail(formData.email, formData.fullName)
+
             setIsSuccess(true)
         } catch (error: any) { toast.error(error.message || "Failed to create account") }
         finally { setIsLoading(false) }

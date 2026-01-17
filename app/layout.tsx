@@ -4,6 +4,9 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
 
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -34,6 +37,8 @@ export default function RootLayout({
         {children}
         <Toaster />
         <MicrosoftClarity />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
