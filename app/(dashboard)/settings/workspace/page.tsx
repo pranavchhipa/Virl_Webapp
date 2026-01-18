@@ -8,26 +8,34 @@ import { workspaceEvents } from "@/lib/workspace-events"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Building, Loader2, Check } from "lucide-react"
-import { useRouter } from "next/navigation"
-
 export default function WorkspaceSettingsPage() {
     const supabase = createClient()
     const router = useRouter()
+    const searchParams = useSearchParams()
+
+    // Get workspace ID from URL or fallback
+    const workspaceId = searchParams.get('workspace')
+
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [workspace, setWorkspace] = useState<any>(null)
     const [name, setName] = useState("")
 
     useEffect(() => {
-        fetchWorkspace()
-    }, [])
+        if (workspaceId) {
+            fetchWorkspace(workspaceId)
+        } else {
+            // Fallback: try to load *any* workspace (or maybe the default one)
+            fetchFirstWorkspace()
+        }
+    }, [workspaceId])
 
-    async function fetchWorkspace() {
+    async function fetchFirstWorkspace() {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            const { data: members, error } = await supabase
+            const { data: members } = await supabase
                 .from('workspace_members')
                 .select('workspace:workspaces(*)')
                 .eq('user_id', user.id)
@@ -36,10 +44,41 @@ export default function WorkspaceSettingsPage() {
             if (members && members.length > 0) {
                 const memberData = members[0] as any
                 if (memberData.workspace) {
-                    const ws = memberData.workspace
-                    setWorkspace(ws)
-                    setName(ws.name)
+                    setWorkspace(memberData.workspace)
+                    setName(memberData.workspace.name)
                 }
+            }
+        } catch (error) {
+            console.error('Error fetching workspace', error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    async function fetchWorkspace(id: string) {
+        try {
+            setLoading(true)
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+
+            // Verify membership AND fetch workspace details
+            const { data: member } = await supabase
+                .from('workspace_members')
+                .select('role, workspace:workspaces(*)')
+                .eq('user_id', user.id)
+                .eq('workspace_id', id)
+                .single()
+
+            if (member && member.workspace) {
+                // Check permissions (optional UI guard, Real security is RLS)
+                if (member.role !== 'owner' && member.role !== 'admin') {
+                    toast.error("You intentionally don't have permissions to edit this workspace.")
+                }
+                const ws = member.workspace as any
+                setWorkspace(ws)
+                setName(ws.name)
+            } else {
+                toast.error("Workspace not found or access denied")
             }
         } catch (error) {
             console.error('Error fetching workspace', error)

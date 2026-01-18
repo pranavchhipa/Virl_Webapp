@@ -15,6 +15,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }
 
     const { workspace } = await searchParams
+
+    // STRICT WORKSPACE ENFORCEMENT
+    // If no workspace ID in URL, find one and redirect immediately
+    if (!workspace) {
+        // 1. Try to find last created/accessed workspace where user is a member
+        const { data: workspaces } = await supabase
+            .from('workspace_members')
+            .select('workspace_id, workspaces(name, created_at)')
+            .eq('user_id', user.id)
+            .limit(1)
+
+        if (workspaces && workspaces.length > 0) {
+            const defaultWorkspaceId = workspaces[0].workspace_id
+            redirect(`/dashboard?workspace=${defaultWorkspaceId}`)
+        }
+        // If no workspaces at all, let it fall through (user might need to create one)
+    }
+
     const projects = await getUserProjects(workspace)
 
     // Get filtered project IDs

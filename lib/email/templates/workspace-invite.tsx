@@ -33,11 +33,11 @@ export function WorkspaceInviteEmail({
                 <Container style={container}>
                     <Section style={header}>
                         <Img
-                            src="https://virl.in/images/virl-email-logo.png"
-                            width="40"
+                            src="https://virl.in/images/virl-logo-full.png"
+                            width="140"
                             height="40"
                             alt="Virl"
-                            style={logo}
+                            style={{ ...logo, objectFit: 'contain' }}
                         />
                     </Section>
 
