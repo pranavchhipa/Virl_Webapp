@@ -1,10 +1,10 @@
 -- RLS Policy for 'workspaces' table
 
--- Enable RLS on the table
+-- Enable RLS on the table (Idempotent)
 ALTER TABLE workspaces ENABLE ROW LEVEL SECURITY;
 
 -- 1. SELECT Policy:
--- Users can see a workspace if they are the owner OR they are a member
+DROP POLICY IF EXISTS "Users can view workspaces they belong to" ON workspaces;
 CREATE POLICY "Users can view workspaces they belong to" 
 ON workspaces FOR SELECT 
 USING (
@@ -18,7 +18,7 @@ USING (
 );
 
 -- 2. UPDATE Policy:
--- Only Owners (and potentially 'admin' members) can update workspace details (like name)
+DROP POLICY IF EXISTS "Only owners and admins can update workspace" ON workspaces;
 CREATE POLICY "Only owners and admins can update workspace" 
 ON workspaces FOR UPDATE 
 USING (
@@ -33,13 +33,13 @@ USING (
 );
 
 -- 3. INSERT Policy:
--- Authenticated users can create workspaces
+DROP POLICY IF EXISTS "Users can create workspaces" ON workspaces;
 CREATE POLICY "Users can create workspaces" 
 ON workspaces FOR INSERT 
 WITH CHECK (auth.uid() = owner_id);
 
 -- 4. DELETE Policy:
--- Only Owner can delete the workspace
+DROP POLICY IF EXISTS "Only owners can delete workspace" ON workspaces;
 CREATE POLICY "Only owners can delete workspace" 
 ON workspaces FOR DELETE 
 USING (auth.uid() = owner_id);
