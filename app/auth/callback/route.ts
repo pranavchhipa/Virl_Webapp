@@ -75,6 +75,8 @@ export async function GET(request: Request) {
                     .eq('user_id', user.id)
                     .limit(1);
 
+                let newWorkspace = null;
+
                 // If no workspaces exist, create a default one
                 if (!existingWorkspaces || existingWorkspaces.length === 0) {
                     const userName = user.user_metadata?.full_name ||
@@ -84,7 +86,7 @@ export async function GET(request: Request) {
                     const workspaceName = `${userName}'s Workspace`;
 
                     // Create workspace
-                    const { data: newWorkspace, error: workspaceError } = await supabase
+                    const { data: createdWorkspace, error: workspaceError } = await supabase
                         .from('workspaces')
                         .insert({
                             name: workspaceName,
@@ -95,20 +97,36 @@ export async function GET(request: Request) {
 
                     if (workspaceError) {
                         console.error('Failed to create workspace:', workspaceError);
-                    } else if (newWorkspace) {
+                    } else if (createdWorkspace) {
+                        newWorkspace = createdWorkspace;
                         // Add user as owner
                         await supabase
                             .from('workspace_members')
                             .insert({
-                                workspace_id: newWorkspace.id,
+                                workspace_id: createdWorkspace.id,
                                 user_id: user.id,
                                 role: 'owner'
                             });
                     }
                 }
 
-                console.log('Redirecting to:', `${origin}${next}`);
-                return NextResponse.redirect(`${origin}${next}`);
+                // Determine redirect URL
+                let finalRedirect = `${origin}${next}`;
+                let targetWorkspaceId = null;
+
+                if (existingWorkspaces && existingWorkspaces.length > 0) {
+                    targetWorkspaceId = existingWorkspaces[0].workspace_id;
+                } else if (newWorkspace) {
+                    targetWorkspaceId = newWorkspace.id;
+                }
+
+                // If going to dashboard and we have a workspace, append it
+                if (next === '/dashboard' && targetWorkspaceId) {
+                    finalRedirect = `${origin}/dashboard?workspace=${targetWorkspaceId}`;
+                }
+
+                console.log('Redirecting to:', finalRedirect);
+                return NextResponse.redirect(finalRedirect);
             }
         } catch (err) {
             console.error('Callback exception:', err);
