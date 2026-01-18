@@ -8,6 +8,8 @@ import { workspaceEvents } from "@/lib/workspace-events"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { Building, Loader2, Check } from "lucide-react"
+import { useRouter, useSearchParams } from "next/navigation"
+
 export default function WorkspaceSettingsPage() {
     const supabase = createClient()
     const router = useRouter()
