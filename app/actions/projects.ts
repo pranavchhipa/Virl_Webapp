@@ -90,23 +90,39 @@ export async function createProject(formData: FormData) {
     const startDate = formData.get("start_date") as string
     const dueDate = formData.get("due_date") as string
     const priority = formData.get("priority") as string || 'medium'
+    const requestedWorkspaceId = formData.get("workspace_id") as string
 
     if (!name) return { error: "Project name is required" }
 
-    // 1. Get Workspace
-    const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).maybeSingle()
-    let workspaceId = member?.workspace_id
-    console.log("[createProject] Member workspace:", workspaceId)
+    let workspaceId = requestedWorkspaceId
 
-    if (!workspaceId) {
-        const { data: own } = await supabase.from('workspaces').select('id').eq('owner_id', user.id).maybeSingle()
-        workspaceId = own?.id
-        console.log("[createProject] Owned workspace:", workspaceId)
+    // 1. If explicit workspace, verify membership
+    if (workspaceId) {
+        const { data: member } = await supabase
+            .from('workspace_members')
+            .select('workspace_id')
+            .eq('workspace_id', workspaceId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        if (!member) {
+            return { error: "You are not a member of the selected workspace" }
+        }
+    }
+    // 2. Fallback: Get first workspace (Legacy behavior)
+    else {
+        const { data: member } = await supabase.from('workspace_members').select('workspace_id').eq('user_id', user.id).limit(1).maybeSingle()
+        workspaceId = member?.workspace_id
+
+        if (!workspaceId) {
+            const { data: own } = await supabase.from('workspaces').select('id').eq('owner_id', user.id).limit(1).maybeSingle()
+            workspaceId = own?.id
+        }
     }
 
     if (!workspaceId) {
         console.error("[createProject] All workspace checks failed")
-        return { error: "No workspace found" }
+        return { error: "No workspace found. Please select a workspace first." }
     }
 
     const { data, error } = await supabase

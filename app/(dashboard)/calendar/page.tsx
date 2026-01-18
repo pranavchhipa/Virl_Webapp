@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CalendarView } from '@/components/calendar/CalendarView'
 import { BulkScheduler } from '@/components/calendar/BulkScheduler'
 import { CalendarAnalytics } from '@/components/calendar/CalendarAnalytics'
@@ -14,6 +14,9 @@ import { toast } from 'sonner'
 
 export default function GlobalCalendarPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const workspaceIdParam = searchParams.get('workspace')
+
     const [assets, setAssets] = useState<CalendarAsset[]>([])
     const [loading, setLoading] = useState(true)
     const [userRole, setUserRole] = useState<'owner' | 'admin' | 'member'>('member')
@@ -64,44 +67,65 @@ export default function GlobalCalendarPage() {
 
     useEffect(() => {
         loadCalendarData()
-    }, [])
+    }, [workspaceIdParam]) // Re-load when workspace changes
 
     async function loadCalendarData() {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            // First, try to get workspace membership
-            const { data: membership } = await supabase
-                .from('workspace_members')
-                .select('role, workspace_id, workspaces(name)')
-                .eq('user_id', user.id)
-                .single()
-
             let workspaceId: string | null = null
             let workspaceName = 'Workspace'
             let role: 'owner' | 'admin' | 'member' = 'member'
 
-            if (membership) {
-                workspaceId = membership.workspace_id
-                workspaceName = (membership as any).workspaces?.name || 'Workspace'
-                role = membership.role as any
-            } else {
-                // Fallback: Check if user owns a workspace
-                const { data: ownedWorkspace } = await supabase
-                    .from('workspaces')
-                    .select('id, name')
-                    .eq('owner_id', user.id)
-                    .single()
+            // 1. Priority: URL Param
+            if (workspaceIdParam) {
+                const { data: membership } = await supabase
+                    .from('workspace_members')
+                    .select('role, workspace_id, workspaces(name)')
+                    .eq('user_id', user.id)
+                    .eq('workspace_id', workspaceIdParam)
+                    .maybeSingle()
 
-                if (ownedWorkspace) {
-                    workspaceId = ownedWorkspace.id
-                    workspaceName = ownedWorkspace.name
-                    role = 'owner'
+                if (membership) {
+                    workspaceId = membership.workspace_id
+                    workspaceName = (membership as any).workspaces?.name || 'Workspace'
+                    role = membership.role as any
                 }
             }
 
-            // If still no workspace, check for any projects they own or are member of
+            // 2. Fallback: Default Workspace Logic (only if no URL param or access denied)
+            if (!workspaceId) {
+                // Try to get first workspace
+                const { data: membership } = await supabase
+                    .from('workspace_members')
+                    .select('role, workspace_id, workspaces(name)')
+                    .eq('user_id', user.id)
+                    .limit(1)
+                    .maybeSingle()
+
+                if (membership) {
+                    workspaceId = membership.workspace_id
+                    workspaceName = (membership as any).workspaces?.name || 'Workspace'
+                    role = membership.role as any
+                } else {
+                    // Check if owner of any workspace (edge case where not in members table?)
+                    const { data: ownedWorkspace } = await supabase
+                        .from('workspaces')
+                        .select('id, name')
+                        .eq('owner_id', user.id)
+                        .limit(1)
+                        .maybeSingle()
+
+                    if (ownedWorkspace) {
+                        workspaceId = ownedWorkspace.id
+                        workspaceName = ownedWorkspace.name
+                        role = 'owner'
+                    }
+                }
+            }
+
+            // 3. Fallback: First project's workspace (Legacy)
             if (!workspaceId) {
                 const { data: userProjects } = await supabase
                     .from('project_members')

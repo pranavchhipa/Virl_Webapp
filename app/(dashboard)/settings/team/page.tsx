@@ -3,7 +3,8 @@
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { createClient } from "@/lib/supabase/client"
-import { useEffect, useState } from "react"
+import { useRef, useEffect, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { Loader2, Trash2, Mail, Shield, UserPlus, RefreshCw, Check, Users, X } from "lucide-react"
 import { inviteUserAction, resendInviteAction, cancelInviteAction } from "@/app/actions/team"
@@ -77,30 +78,60 @@ export default function TeamSettingsPage() {
     const [resendingId, setResendingId] = useState<string | null>(null)
     const [cancellingId, setCancellingId] = useState<string | null>(null)
 
+    const searchParams = useSearchParams()
+    const workspaceIdParam = searchParams.get('workspace')
+
     useEffect(() => {
         fetchTeamData()
-    }, [])
+    }, [workspaceIdParam]) // Refetch when URL parameter changes
 
     async function fetchTeamData() {
         try {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
 
-            // 1. Get Current Workspace
-            const { data: myMembership } = await supabase
-                .from('workspace_members')
-                .select('workspace_id, role')
-                .eq('user_id', user.id)
-                .limit(1)
-                .single()
+            let workspaceId = workspaceIdParam
+            let myRole = null
 
-            if (!myMembership) {
-                setLoading(false)
-                return
+            // 1. Resolve Workspace ID
+            if (workspaceId) {
+                // Verify access
+                const { data: membership } = await supabase
+                    .from('workspace_members')
+                    .select('role')
+                    .eq('workspace_id', workspaceId)
+                    .eq('user_id', user.id)
+                    .maybeSingle()
+
+                if (membership) {
+                    myRole = membership.role
+                } else {
+                    // Access denied or not a member - reset to safe default
+                    workspaceId = null
+                }
             }
 
-            setCurrentWorkspaceId(myMembership.workspace_id)
-            setCurrentUserRole(myMembership.role)
+            // Fallback if no URL param or invalid
+            if (!workspaceId) {
+                const { data: myMembership } = await supabase
+                    .from('workspace_members')
+                    .select('workspace_id, role')
+                    .eq('user_id', user.id)
+                    .limit(1)
+                    .maybeSingle()
+
+                if (!myMembership) {
+                    setLoading(false)
+                    return
+                }
+                workspaceId = myMembership.workspace_id
+                myRole = myMembership.role
+            }
+
+            setCurrentWorkspaceId(workspaceId)
+            setCurrentUserRole(myRole)
+
+            if (!workspaceId) return
 
             // 2. Fetch Team Members
             const { data: members, error: membersError } = await supabase
@@ -116,7 +147,7 @@ export default function TeamSettingsPage() {
                         avatar_url
                     )
                 `)
-                .eq('workspace_id', myMembership.workspace_id)
+                .eq('workspace_id', workspaceId)
                 .order('role', { ascending: true })
 
             if (membersError) throw membersError
@@ -125,7 +156,7 @@ export default function TeamSettingsPage() {
             const { data: pendingInvites, error: invitesError } = await supabase
                 .from('workspace_invites')
                 .select('*')
-                .eq('workspace_id', myMembership.workspace_id)
+                .eq('workspace_id', workspaceId)
                 .order('created_at', { ascending: false })
 
             if (invitesError) throw invitesError

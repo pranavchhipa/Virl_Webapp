@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -40,6 +40,10 @@ export function CreateProjectDialog() {
         priority: "medium"
     })
 
+    // Get workspace context
+    const searchParams = useSearchParams()
+    const workspaceId = searchParams.get("workspace")
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!formData.name) return
@@ -52,6 +56,11 @@ export function CreateProjectDialog() {
             if (formData.startDate) formDataObj.append("start_date", formData.startDate)
             if (formData.dueDate) formDataObj.append("due_date", formData.dueDate)
             formDataObj.append("priority", formData.priority)
+
+            // Pass the workspace ID if available
+            if (workspaceId) {
+                formDataObj.append("workspace_id", workspaceId)
+            }
 
             const res = await createProject(formDataObj)
 

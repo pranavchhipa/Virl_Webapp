@@ -33,6 +33,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 
 type Workspace = {
     id: string;
@@ -47,7 +48,13 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
     const [newWorkspaceName, setNewWorkspaceName] = useState("");
     const [isLoading, setIsLoading] = useState(false);
 
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
     const supabase = createClient();
+
+    // Get workspace ID from URL
+    const urlWorkspaceId = searchParams.get('workspace');
 
     useEffect(() => {
         const fetchWorkspaces = async () => {
@@ -70,14 +77,37 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
 
             if (data) {
                 setWorkspaces(data);
-                if (data.length > 0) {
-                    setSelectedWorkspace(data[0]);
+
+                // Determine selected workspace based on URL or Default
+                if (urlWorkspaceId) {
+                    const match = data.find(w => w.id === urlWorkspaceId);
+                    if (match) {
+                        setSelectedWorkspace(match);
+                    } else if (data.length > 0) {
+                        // URL has invalid ID, fallback to first
+                        handleWorkspaceChange(data[0]);
+                    }
+                } else if (data.length > 0) {
+                    // No URL param, set first one
+                    handleWorkspaceChange(data[0]);
                 }
             }
         };
 
         fetchWorkspaces();
-    }, []);
+    }, [urlWorkspaceId]); // Re-run if URL changes (though mostly handled by internal logic)
+
+    const handleWorkspaceChange = (workspace: Workspace) => {
+        setSelectedWorkspace(workspace);
+        setOpen(false);
+
+        // Update URL
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('workspace', workspace.id);
+
+        // Preserve other params if needed, or simple replacement
+        router.push(`${pathname}?${params.toString()}`);
+    };
 
     const handleCreateWorkspace = async () => {
         setIsLoading(true);
@@ -105,17 +135,19 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
                 .insert({
                     workspace_id: workspaceData.id,
                     user_id: user.id,
-                    role: 'cmo' // or 'admin' depending on your schema rules
+                    role: 'owner'
                 });
 
             if (memberError) throw memberError;
 
             // Success
             setWorkspaces([workspaceData, ...workspaces]);
-            setSelectedWorkspace(workspaceData);
             setNewWorkspaceName("");
             setShowNewWorkspaceDialog(false);
             toast.success("Workspace created successfully");
+
+            // Switch to new workspace
+            handleWorkspaceChange(workspaceData);
 
         } catch (error: any) {
             console.error('Error creating workspace:', error);
@@ -141,9 +173,11 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
                                 src={`https://avatar.vercel.sh/${selectedWorkspace?.id}.png`}
                                 alt={selectedWorkspace?.name}
                             />
-                            <AvatarFallback>SC</AvatarFallback>
+                            <AvatarFallback>WS</AvatarFallback>
                         </Avatar>
-                        {selectedWorkspace?.name || "Select workspace"}
+                        <span className="truncate max-w-[120px]">
+                            {selectedWorkspace?.name || "Select workspace"}
+                        </span>
                         <ChevronsUpDown className="ml-auto h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
@@ -156,11 +190,8 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
                                 {workspaces.map((workspace) => (
                                     <CommandItem
                                         key={workspace.id}
-                                        onSelect={() => {
-                                            setSelectedWorkspace(workspace);
-                                            setOpen(false);
-                                        }}
-                                        className="text-sm"
+                                        onSelect={() => handleWorkspaceChange(workspace)}
+                                        className="text-sm cursor-pointer"
                                     >
                                         <Avatar className="mr-2 h-5 w-5">
                                             <AvatarImage
@@ -168,9 +199,9 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
                                                 alt={workspace.name}
                                                 className="grayscale"
                                             />
-                                            <AvatarFallback>SC</AvatarFallback>
+                                            <AvatarFallback>WS</AvatarFallback>
                                         </Avatar>
-                                        {workspace.name}
+                                        <span className="truncate">{workspace.name}</span>
                                         <Check
                                             className={cn(
                                                 "ml-auto h-4 w-4",
@@ -192,6 +223,7 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
                                             setOpen(false);
                                             setShowNewWorkspaceDialog(true);
                                         }}
+                                        className="cursor-pointer"
                                     >
                                         <PlusCircle className="mr-2 h-5 w-5" />
                                         Create Workspace
@@ -225,7 +257,7 @@ export function WorkspaceSwitcher({ className }: { className?: string }) {
                         Cancel
                     </Button>
                     <Button type="submit" onClick={handleCreateWorkspace} disabled={isLoading}>
-                        {isLoading ? "Creating..." : "Continue"}
+                        {isLoading ? "Creating..." : "Create & Switch"}
                     </Button>
                 </DialogFooter>
             </DialogContent>

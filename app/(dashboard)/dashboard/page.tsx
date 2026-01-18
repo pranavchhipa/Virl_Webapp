@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { BentoDashboard } from "@/components/dashboard/bento-dashboard"
 import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { getUserProjects } from "@/app/actions/dashboard"
+import { getWorkspaceStorage, getUserStorage } from "@/app/actions/storage"
 import { FeedbackWidget } from "@/components/feedback/feedback-widget"
 
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ workspace?: string }> }) {
@@ -27,14 +28,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         .order('created_at', { ascending: false })
         .limit(10)
 
-    // Get total storage used (sum of all asset file sizes from database)
-    const { data: storageData } = await supabase
-        .from('assets')
-        .select('file_size')
-        .in('project_id', projectIds) // Filter by workspace projects
-
-    // Calculate total storage from file_size column
-    const totalStorageBytes = storageData?.reduce((acc, asset) => acc + (asset.file_size || 0), 0) || 0
+    // Get Storage Stats (Dynamic based on Workspace or User Global)
+    let storageStats;
+    if (workspace) {
+        storageStats = await getWorkspaceStorage(workspace)
+    } else {
+        storageStats = await getUserStorage(user.id)
+    }
 
     // Get unique team members across all user's projects
     const { data: teamMembers } = await supabase
@@ -54,10 +54,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         .in('project_id', projectIds) // Filter by workspace projects
 
     const stats = {
-        storageUsed: totalStorageBytes,
-        storageTotal: 10 * 1024 * 1024 * 1024, // 10GB
+        storageUsed: storageStats.used,
+        storageTotal: storageStats.limit,
         teamMemberCount: uniqueMembers.length,
-        teamMembers: uniqueMembers.slice(0, 3), // First 3 for avatars
+        teamMembers: uniqueMembers.slice(0, 3),
         pendingAssets: pendingCount || 0
     }
 
