@@ -40,16 +40,7 @@ export function AuthHero() {
                             <div className="h-full w-2/3 bg-violet-500 rounded-full" />
                         </div>
 
-                        {/* Floating Tooltip - Inside Video */}
-                        <div className="absolute top-1/2 right-4 -translate-y-1/2 bg-white rounded-xl shadow-xl p-3 flex items-center gap-3 animate-bounce shadow-violet-900/20 border border-slate-100">
-                            <div className="w-8 h-8 rounded-lg bg-yellow-100 flex items-center justify-center text-yellow-600">
-                                <Zap className="w-4 h-4 fill-yellow-600" />
-                            </div>
-                            <div>
-                                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Speed</div>
-                                <div className="text-slate-900 text-xs font-bold">Lightning Fast</div>
-                            </div>
-                        </div>
+                        {/* Floating Tooltip - Inside Video Removed as per user request */}
                     </div>
 
                     {/* Card Footer */}
