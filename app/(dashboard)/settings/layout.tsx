@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { User, Users, Building2, Bell, CreditCard } from "lucide-react"
 
 const tabs = [
@@ -19,6 +19,15 @@ interface SettingsLayoutProps {
 
 export default function SettingsLayout({ children }: SettingsLayoutProps) {
     const pathname = usePathname()
+    const searchParams = useSearchParams()
+
+    const getHref = (path: string) => {
+        const workspaceId = searchParams.get('workspace')
+        if (workspaceId) {
+            return `${path}?workspace=${workspaceId}`
+        }
+        return path
+    }
 
     return (
         <div className="flex flex-col h-full bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/30">
@@ -39,7 +48,7 @@ export default function SettingsLayout({ children }: SettingsLayoutProps) {
                             return (
                                 <Link
                                     key={tab.href}
-                                    href={tab.href}
+                                    href={getHref(tab.href)}
                                     className={cn(
                                         "relative pb-3 text-sm font-medium transition-all flex items-center gap-2",
                                         isActive

@@ -104,6 +104,8 @@ export default function BillingPage() {
                 setUser(user)
 
                 // Get user's primary workspace (first owned workspace)
+                // Get user's primary workspace (first owned workspace)
+                // STRICT: Always look for OWNED workspace for Billing, ignoring URL params
                 const { data: workspaces } = await supabase
                     .from('workspaces')
                     .select('id, plan_tier, owner_id')
@@ -125,14 +127,14 @@ export default function BillingPage() {
                         planTier: 'basic',
                         renewalDate: null
                     })
-                    setIsOwner(true) // User owns their account
+                    setIsOwner(true) // User owns their personal account details
                     setWorkspaceId(null)
                 } else {
                     const ws = workspaces[0]
                     setWorkspaceId(ws.id)
                     setIsOwner(true)
 
-                    // Get member count
+                    // Get member count across ALL owned workspaces
                     const { count: memberCount } = await supabase
                         .from('workspace_members')
                         .select('*', { count: 'exact', head: true })
@@ -144,7 +146,7 @@ export default function BillingPage() {
                         .select('*', { count: 'exact', head: true })
                         .eq('owner_id', user.id)
 
-                    // Load usage
+                    // Load usage for this PRIMARY owned workspace
                     const [storage, sparks] = await Promise.all([
                         getWorkspaceStorage(ws.id),
                         getVixiUsage(ws.id)

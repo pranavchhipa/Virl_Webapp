@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { ChevronDown, Building2, Plus, Check } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { workspaceEvents } from '@/lib/workspace-events'
 import { WorkspaceBadge } from '@/components/ui/workspace-badge'
 import { createClient } from '@/lib/supabase/client'
@@ -24,6 +24,7 @@ interface WorkspaceSelectorProps {
 
 export function WorkspaceSelector({ collapsed }: WorkspaceSelectorProps) {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [isOpen, setIsOpen] = useState(false)
     const [workspaces, setWorkspaces] = useState<Workspace[]>([])
     const [selectedWorkspace, setSelectedWorkspace] = useState<Workspace | null>(null)
@@ -68,8 +69,13 @@ export function WorkspaceSelector({ collapsed }: WorkspaceSelectorProps) {
 
             setWorkspaces(enrichedWorkspaces)
 
+            // PRIORITY: URL Param > LocalStorage > Default
+            const urlWorkspaceId = searchParams.get('workspace')
             const savedId = localStorage.getItem('selectedWorkspaceId')
-            const selected = enrichedWorkspaces.find((w: Workspace) => w.id === savedId) || enrichedWorkspaces[0]
+
+            const targetId = urlWorkspaceId || savedId
+
+            const selected = enrichedWorkspaces.find((w: Workspace) => w.id === targetId) || enrichedWorkspaces[0]
             setSelectedWorkspace(selected)
 
             if (selected) {
