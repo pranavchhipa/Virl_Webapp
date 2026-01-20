@@ -29,7 +29,6 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
     const imageRef = useRef<HTMLImageElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    const scrollContainerRef = useRef<HTMLDivElement>(null)
     const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
     // State
@@ -41,10 +40,11 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
     const [zoom, setZoom] = useState(1)
     const [imageLoaded, setImageLoaded] = useState(false)
 
-    // Pan state - automatic when zoomed and not drawing
+    // Pan state - position based
+    const [position, setPosition] = useState({ x: 0, y: 0 })
     const [isPanning, setIsPanning] = useState(false)
     const [panStart, setPanStart] = useState({ x: 0, y: 0 })
-    const [scrollStart, setScrollStart] = useState({ x: 0, y: 0 })
+    const [positionStart, setPositionStart] = useState({ x: 0, y: 0 })
 
     // Local comments state for immediate updates
     const [localComments, setLocalComments] = useState(comments)
@@ -53,6 +53,13 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
     useEffect(() => {
         setLocalComments(comments)
     }, [comments])
+
+    // Reset position when zoom resets
+    useEffect(() => {
+        if (zoom === 1) {
+            setPosition({ x: 0, y: 0 })
+        }
+    }, [zoom])
 
     // Initialize canvas when image loads
     useEffect(() => {
@@ -93,7 +100,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
         }
     }
 
-    // Check if panning should be enabled (zoomed in and not in drawing mode)
+    // Check if panning should be enabled
     const canPan = zoom > 1 && !isDrawingMode
 
     // Drawing Handlers
@@ -145,24 +152,23 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
         ctx?.closePath()
     }
 
-    // Pan handlers - automatic when zoomed and not drawing
+    // Pan handlers - position based for smooth movement
     const startPan = (e: React.MouseEvent) => {
-        if (!canPan || !scrollContainerRef.current) return
+        if (!canPan) return
         e.preventDefault()
         setIsPanning(true)
         setPanStart({ x: e.clientX, y: e.clientY })
-        setScrollStart({
-            x: scrollContainerRef.current.scrollLeft,
-            y: scrollContainerRef.current.scrollTop
-        })
+        setPositionStart({ x: position.x, y: position.y })
     }
 
     const doPan = (e: React.MouseEvent) => {
-        if (!isPanning || !scrollContainerRef.current) return
+        if (!isPanning) return
         const dx = e.clientX - panStart.x
         const dy = e.clientY - panStart.y
-        scrollContainerRef.current.scrollLeft = scrollStart.x - dx
-        scrollContainerRef.current.scrollTop = scrollStart.y - dy
+        setPosition({
+            x: positionStart.x + dx,
+            y: positionStart.y + dy
+        })
     }
 
     const stopPan = () => {
@@ -179,12 +185,8 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
         const ctx = tempCanvas.getContext('2d')
 
         if (ctx) {
-            // 1. Draw original image
             ctx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height)
-
-            // 2. Draw annotations (scaled to natural resolution)
             ctx.drawImage(canvasRef.current, 0, 0, tempCanvas.width, tempCanvas.height)
-
             return tempCanvas.toDataURL('image/jpeg', 0.8)
         }
         return null
@@ -195,7 +197,6 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
 
         try {
             let attachment = null
-            // Capture if we have annotations
             if (hasAnnotations) {
                 try {
                     attachment = captureImageWithAnnotations()
@@ -204,7 +205,6 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                 }
             }
 
-            // Create optimistic comment for immediate display
             const optimisticComment = {
                 id: `temp-${Date.now()}`,
                 content: attachment
@@ -216,10 +216,8 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                 created_at: new Date().toISOString()
             }
 
-            // Add to local state immediately
             setLocalComments(prev => [...prev, optimisticComment])
 
-            // Call the actual submit
             onAddComment?.({
                 timestamp: 0,
                 content: commentContent.trim(),
@@ -260,6 +258,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                     break
                 case '0':
                     setZoom(1)
+                    setPosition({ x: 0, y: 0 })
                     break
             }
         }
@@ -268,60 +267,61 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
         return () => window.removeEventListener('keydown', handleKeyDown)
     }, [isDrawingMode])
 
-    // Cursor logic - grab when can pan, crosshair when drawing
     const getCursor = () => {
         if (isDrawingMode) return 'crosshair'
         if (canPan) return isPanning ? 'grabbing' : 'grab'
         return 'default'
     }
 
+    const handleResetView = () => {
+        setZoom(1)
+        setPosition({ x: 0, y: 0 })
+    }
+
     return (
         <div className="flex flex-col lg:flex-row h-[600px] border rounded-2xl overflow-hidden bg-gradient-to-br from-slate-50 via-white to-violet-50 shadow-2xl">
             {/* LEFT: Image Viewer */}
             <div ref={containerRef} className="flex-1 relative flex flex-col bg-gradient-to-br from-slate-100 via-indigo-50/30 to-violet-100/30 group overflow-hidden">
-                {/* Image Container with scrolling and panning */}
+                {/* Image Container */}
                 <div
-                    ref={scrollContainerRef}
-                    className="flex-1 overflow-auto p-4"
+                    className="flex-1 overflow-hidden p-4 flex items-center justify-center"
                     style={{ cursor: getCursor() }}
                     onMouseDown={canPan ? startPan : undefined}
-                    onMouseMove={canPan ? doPan : undefined}
+                    onMouseMove={isPanning ? doPan : undefined}
                     onMouseUp={stopPan}
                     onMouseLeave={stopPan}
                 >
-                    <div className="min-h-full flex items-center justify-center">
-                        <div
-                            className="relative inline-block"
-                            style={{
-                                transform: `scale(${zoom})`,
-                                transformOrigin: 'center center',
-                                transition: isPanning ? 'none' : 'transform 0.2s ease'
-                            }}
-                        >
-                            <img
-                                ref={imageRef}
-                                src={src}
-                                alt="Review Image"
-                                className="max-w-full max-h-[450px] object-contain rounded-lg shadow-lg select-none"
-                                onLoad={() => setImageLoaded(true)}
-                                crossOrigin="anonymous"
-                                draggable={false}
-                            />
+                    <div
+                        className="relative inline-block select-none"
+                        style={{
+                            transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                            transformOrigin: 'center center',
+                            transition: isPanning ? 'none' : 'transform 0.2s ease'
+                        }}
+                    >
+                        <img
+                            ref={imageRef}
+                            src={src}
+                            alt="Review Image"
+                            className="max-w-full max-h-[450px] object-contain rounded-lg shadow-lg"
+                            onLoad={() => setImageLoaded(true)}
+                            crossOrigin="anonymous"
+                            draggable={false}
+                        />
 
-                            {/* Annotation Canvas Overlay */}
-                            <canvas
-                                ref={canvasRef}
-                                className={cn(
-                                    "absolute inset-0 z-10 touch-none rounded-lg",
-                                    isDrawingMode ? "pointer-events-auto" : "pointer-events-none"
-                                )}
-                                style={{ cursor: isDrawingMode ? 'crosshair' : 'inherit' }}
-                                onMouseDown={startDrawing}
-                                onMouseMove={draw}
-                                onMouseUp={stopDrawing}
-                                onMouseLeave={stopDrawing}
-                            />
-                        </div>
+                        {/* Annotation Canvas Overlay */}
+                        <canvas
+                            ref={canvasRef}
+                            className={cn(
+                                "absolute inset-0 z-10 touch-none rounded-lg",
+                                isDrawingMode ? "pointer-events-auto" : "pointer-events-none"
+                            )}
+                            style={{ cursor: isDrawingMode ? 'crosshair' : 'inherit' }}
+                            onMouseDown={startDrawing}
+                            onMouseMove={draw}
+                            onMouseUp={stopDrawing}
+                            onMouseLeave={stopDrawing}
+                        />
                     </div>
                 </div>
 
@@ -336,10 +336,10 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                     </div>
                 )}
 
-                {/* Zoom hint when zoomed */}
+                {/* Pan hint when zoomed */}
                 {canPan && !isPanning && (
                     <div className="absolute top-4 right-4 z-20 bg-black/60 text-white/80 px-3 py-1.5 rounded-full text-xs font-medium">
-                        Drag to pan
+                        Click & drag to pan
                     </div>
                 )}
 
@@ -373,9 +373,9 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => setZoom(1)}
+                                    onClick={handleResetView}
                                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
-                                    title="Reset Zoom (0)"
+                                    title="Reset View (0)"
                                 >
                                     <RotateCcw className="h-4 w-4" />
                                 </Button>
@@ -555,7 +555,6 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
 
                 {/* Input Area */}
                 <div className="p-5 border-t border-slate-200 bg-white">
-                    {/* Annotation indicator */}
                     {hasAnnotations && (
                         <div className="flex items-center gap-2 text-sm text-violet-600 font-medium mb-3 bg-violet-50 px-3 py-2 rounded-lg border border-violet-200">
                             <PenTool className="h-4 w-4" />
