@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from "react"
 import {
     MessageSquare,
-    Clock,
     X,
     PenTool,
     Check,
@@ -11,13 +10,13 @@ import {
     ZoomIn,
     ZoomOut,
     RotateCcw,
-    Move
+    Hand,
+    Send
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
 import { Textarea } from "@/components/ui/textarea"
-import { Slider } from "@/components/ui/slider"
 
 interface ImageReviewerProps {
     src: string
@@ -31,15 +30,22 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
     const imageRef = useRef<HTMLImageElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
     const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
     // State
     const [commentContent, setCommentContent] = useState("")
-    const [isDrawing, setIsDrawing] = useState(false)
+    const [isDrawingMode, setIsDrawingMode] = useState(false)
     const [isDrawingActive, setIsDrawingActive] = useState(false)
-    const [activeTool, setActiveTool] = useState<'pen' | 'eraser'>('pen')
+    const [hasAnnotations, setHasAnnotations] = useState(false)
+    const [activeTool, setActiveTool] = useState<'pen' | 'eraser' | 'pan'>('pen')
     const [zoom, setZoom] = useState(1)
     const [imageLoaded, setImageLoaded] = useState(false)
+
+    // Pan state
+    const [isPanning, setIsPanning] = useState(false)
+    const [panStart, setPanStart] = useState({ x: 0, y: 0 })
+    const [scrollStart, setScrollStart] = useState({ x: 0, y: 0 })
 
     // Initialize canvas when image loads
     useEffect(() => {
@@ -55,7 +61,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
             canvasRef.current.height = img.clientHeight
             const ctx = canvasRef.current.getContext('2d')
             if (ctx) {
-                ctx.strokeStyle = '#8b5cf6' // Violet-500
+                ctx.strokeStyle = '#8b5cf6'
                 ctx.lineWidth = 4
                 ctx.lineCap = 'round'
                 ctx.lineJoin = 'round'
@@ -67,30 +73,32 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
         if (canvasRef.current) {
             const ctx = canvasRef.current.getContext('2d')
             ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height)
+            setHasAnnotations(false)
         }
     }
 
     const toggleDrawingMode = () => {
-        const newState = !isDrawing
-        setIsDrawing(newState)
+        const newState = !isDrawingMode
+        setIsDrawingMode(newState)
         if (newState) {
             initCanvas()
-        } else {
-            clearCanvas()
+            setActiveTool('pen')
         }
     }
 
     // Drawing Handlers
     const startDrawing = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing) return
+        if (!isDrawingMode || activeTool === 'pan') return
 
         const canvas = canvasRef.current
         const ctx = canvas?.getContext('2d')
         if (!ctx || !canvas) return
 
         const rect = canvas.getBoundingClientRect()
-        const x = (e.clientX - rect.left) / zoom
-        const y = (e.clientY - rect.top) / zoom
+        const scaleX = canvas.width / rect.width
+        const scaleY = canvas.height / rect.height
+        const x = (e.clientX - rect.left) * scaleX
+        const y = (e.clientY - rect.top) * scaleY
 
         setIsDrawingActive(true)
         ctx.beginPath()
@@ -107,21 +115,47 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
     }
 
     const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
-        if (!isDrawing || !isDrawingActive) return
+        if (!isDrawingMode || !isDrawingActive || activeTool === 'pan') return
         const canvas = canvasRef.current
         const ctx = canvas?.getContext('2d')
         if (ctx && canvas) {
             const rect = canvas.getBoundingClientRect()
-            ctx.lineTo((e.clientX - rect.left) / zoom, (e.clientY - rect.top) / zoom)
+            const scaleX = canvas.width / rect.width
+            const scaleY = canvas.height / rect.height
+            ctx.lineTo((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY)
             ctx.stroke()
+            setHasAnnotations(true)
         }
     }
 
     const stopDrawing = () => {
-        if (!isDrawing) return
+        if (!isDrawingMode) return
         setIsDrawingActive(false)
         const ctx = canvasRef.current?.getContext('2d')
         ctx?.closePath()
+    }
+
+    // Pan handlers
+    const startPan = (e: React.MouseEvent) => {
+        if (activeTool !== 'pan' || !scrollContainerRef.current) return
+        setIsPanning(true)
+        setPanStart({ x: e.clientX, y: e.clientY })
+        setScrollStart({
+            x: scrollContainerRef.current.scrollLeft,
+            y: scrollContainerRef.current.scrollTop
+        })
+    }
+
+    const doPan = (e: React.MouseEvent) => {
+        if (!isPanning || !scrollContainerRef.current) return
+        const dx = e.clientX - panStart.x
+        const dy = e.clientY - panStart.y
+        scrollContainerRef.current.scrollLeft = scrollStart.x - dx
+        scrollContainerRef.current.scrollTop = scrollStart.y - dy
+    }
+
+    const stopPan = () => {
+        setIsPanning(false)
     }
 
     const captureImageWithAnnotations = (): string | null => {
@@ -150,7 +184,8 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
 
         try {
             let attachment = null
-            if (isDrawing) {
+            // Capture if we have annotations (regardless of drawing mode state)
+            if (hasAnnotations) {
                 try {
                     attachment = captureImageWithAnnotations()
                 } catch (error) {
@@ -159,15 +194,16 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
             }
 
             onAddComment?.({
-                timestamp: 0, // Images don't have timestamps
+                timestamp: 0,
                 content: commentContent.trim(),
                 attachment
             })
 
             setCommentContent("")
             clearCanvas()
-            setIsDrawing(false)
+            setIsDrawingMode(false)
             setActiveTool('pen')
+            setHasAnnotations(false)
         } catch (error) {
             console.error('Failed to submit comment:', error)
         }
@@ -186,7 +222,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
 
             switch (e.key.toLowerCase()) {
                 case 'escape':
-                    if (isDrawing) toggleDrawingMode()
+                    if (isDrawingMode) toggleDrawingMode()
                     break
                 case '+':
                 case '=':
@@ -198,53 +234,83 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                 case '0':
                     setZoom(1)
                     break
+                case 'h':
+                    setActiveTool('pan')
+                    break
+                case 'p':
+                    setActiveTool('pen')
+                    break
             }
         }
 
         window.addEventListener('keydown', handleKeyDown)
         return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [isDrawing])
+    }, [isDrawingMode])
+
+    const getCursor = () => {
+        if (activeTool === 'pan') return isPanning ? 'grabbing' : 'grab'
+        if (isDrawingMode) return 'crosshair'
+        return 'default'
+    }
 
     return (
         <div className="flex flex-col lg:flex-row h-[600px] border rounded-2xl overflow-hidden bg-gradient-to-br from-slate-50 via-white to-violet-50 shadow-2xl">
             {/* LEFT: Image Viewer */}
             <div ref={containerRef} className="flex-1 relative flex flex-col bg-gradient-to-br from-slate-100 via-indigo-50/30 to-violet-100/30 group overflow-hidden">
-                {/* Image Container */}
-                <div className="flex-1 flex items-center justify-center overflow-auto p-4">
-                    <div
-                        className="relative"
-                        style={{ transform: `scale(${zoom})`, transformOrigin: 'center center', transition: 'transform 0.2s ease' }}
-                    >
-                        <img
-                            ref={imageRef}
-                            src={src}
-                            alt="Review Image"
-                            className="max-w-full max-h-[450px] object-contain rounded-lg shadow-lg"
-                            onLoad={() => setImageLoaded(true)}
-                            crossOrigin="anonymous"
-                        />
+                {/* Image Container with scrolling */}
+                <div
+                    ref={scrollContainerRef}
+                    className="flex-1 overflow-auto p-4"
+                    style={{ cursor: getCursor() }}
+                    onMouseDown={activeTool === 'pan' ? startPan : undefined}
+                    onMouseMove={activeTool === 'pan' ? doPan : undefined}
+                    onMouseUp={stopPan}
+                    onMouseLeave={stopPan}
+                >
+                    <div className="min-h-full flex items-center justify-center">
+                        <div
+                            className="relative inline-block"
+                            style={{
+                                transform: `scale(${zoom})`,
+                                transformOrigin: 'center center',
+                                transition: isPanning ? 'none' : 'transform 0.2s ease'
+                            }}
+                        >
+                            <img
+                                ref={imageRef}
+                                src={src}
+                                alt="Review Image"
+                                className="max-w-full max-h-[450px] object-contain rounded-lg shadow-lg"
+                                onLoad={() => setImageLoaded(true)}
+                                crossOrigin="anonymous"
+                                draggable={false}
+                            />
 
-                        {/* Annotation Canvas Overlay */}
-                        <canvas
-                            ref={canvasRef}
-                            className={cn(
-                                "absolute inset-0 z-10 touch-none pointer-events-none rounded-lg",
-                                isDrawing && "pointer-events-auto cursor-crosshair"
-                            )}
-                            onMouseDown={startDrawing}
-                            onMouseMove={draw}
-                            onMouseUp={stopDrawing}
-                            onMouseLeave={stopDrawing}
-                        />
+                            {/* Annotation Canvas Overlay */}
+                            <canvas
+                                ref={canvasRef}
+                                className={cn(
+                                    "absolute inset-0 z-10 touch-none rounded-lg",
+                                    isDrawingMode && activeTool !== 'pan' ? "pointer-events-auto" : "pointer-events-none"
+                                )}
+                                style={{ cursor: isDrawingMode && activeTool !== 'pan' ? 'crosshair' : 'inherit' }}
+                                onMouseDown={startDrawing}
+                                onMouseMove={draw}
+                                onMouseUp={stopDrawing}
+                                onMouseLeave={stopDrawing}
+                            />
+                        </div>
                     </div>
                 </div>
 
                 {/* Drawing Mode Banner */}
-                {isDrawing && (
+                {isDrawingMode && (
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 bg-violet-600 text-white px-6 py-2 rounded-full shadow-lg flex items-center gap-2 animate-in slide-in-from-top">
                         <PenTool className="h-4 w-4" />
-                        <span className="text-sm font-semibold">Drawing Mode Active</span>
-                        <span className="text-xs opacity-75">Press ESC to exit</span>
+                        <span className="text-sm font-semibold">Annotation Mode</span>
+                        {hasAnnotations && (
+                            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">Has drawings</span>
+                        )}
                     </div>
                 )}
 
@@ -259,7 +325,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                                     size="sm"
                                     onClick={() => setZoom(z => Math.max(z - 0.25, 0.5))}
                                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
-                                    title="Zoom Out"
+                                    title="Zoom Out (-)"
                                 >
                                     <ZoomOut className="h-4 w-4" />
                                 </Button>
@@ -271,7 +337,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                                     size="sm"
                                     onClick={() => setZoom(z => Math.min(z + 0.25, 3))}
                                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
-                                    title="Zoom In"
+                                    title="Zoom In (+)"
                                 >
                                     <ZoomIn className="h-4 w-4" />
                                 </Button>
@@ -280,7 +346,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                                     size="sm"
                                     onClick={() => setZoom(1)}
                                     className="h-8 w-8 p-0 text-white/70 hover:text-white hover:bg-white/10"
-                                    title="Reset Zoom"
+                                    title="Reset Zoom (0)"
                                 >
                                     <RotateCcw className="h-4 w-4" />
                                 </Button>
@@ -289,9 +355,25 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                             {/* Divider */}
                             <div className="h-6 w-px bg-white/20" />
 
+                            {/* Pan Tool (always visible when zoomed) */}
+                            {zoom > 1 && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setActiveTool(activeTool === 'pan' ? 'pen' : 'pan')}
+                                    className={cn(
+                                        "h-8 w-8 p-0 transition-all",
+                                        activeTool === 'pan' ? "bg-blue-600 text-white shadow-md" : "text-white/70 hover:text-white hover:bg-white/10"
+                                    )}
+                                    title="Pan/Move (H)"
+                                >
+                                    <Hand className="h-4 w-4" />
+                                </Button>
+                            )}
+
                             {/* Drawing Tools */}
                             <div className="flex items-center gap-1">
-                                {isDrawing && (
+                                {isDrawingMode && (
                                     <div className="flex items-center bg-white/10 rounded-lg p-1 gap-1 border border-white/10 mr-2">
                                         <Button
                                             variant="ghost"
@@ -301,7 +383,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                                                 "h-8 w-8 p-0 transition-all",
                                                 activeTool === 'pen' ? "bg-violet-600 text-white shadow-md" : "text-white/70 hover:text-white hover:bg-white/10"
                                             )}
-                                            title="Pen Tool (Draw)"
+                                            title="Pen Tool (P)"
                                         >
                                             <PenTool className="h-4 w-4" />
                                         </Button>
@@ -326,7 +408,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                                             size="sm"
                                             onClick={clearCanvas}
                                             className="text-white/70 hover:text-red-400 hover:bg-red-950/30 h-8 px-2 text-xs"
-                                            title="Clear All Annotations"
+                                            title="Clear All"
                                         >
                                             <X className="h-3 w-3 mr-1" />
                                             Clear
@@ -340,11 +422,11 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                                     onClick={toggleDrawingMode}
                                     className={cn(
                                         "text-white/80 hover:bg-white/20 h-8 px-3 transition-all font-medium text-xs rounded-lg border border-transparent",
-                                        isDrawing && "bg-violet-600 text-white hover:bg-violet-700 border-violet-500 shadow-lg"
+                                        isDrawingMode && "bg-violet-600 text-white hover:bg-violet-700 border-violet-500 shadow-lg"
                                     )}
                                     title="Toggle Annotation Mode"
                                 >
-                                    {isDrawing ? (
+                                    {isDrawingMode ? (
                                         <>
                                             <Check className="h-3 w-3 mr-1.5" />
                                             Done
@@ -460,6 +542,20 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
 
                 {/* Input Area */}
                 <div className="p-5 border-t border-slate-200 bg-white">
+                    {/* Annotation indicator */}
+                    {hasAnnotations && (
+                        <div className="flex items-center gap-2 text-sm text-violet-600 font-medium mb-3 bg-violet-50 px-3 py-2 rounded-lg border border-violet-200">
+                            <PenTool className="h-4 w-4" />
+                            <span>Annotation will be attached</span>
+                            <button
+                                onClick={clearCanvas}
+                                className="ml-auto text-xs text-slate-500 hover:text-red-500"
+                            >
+                                Remove
+                            </button>
+                        </div>
+                    )}
+
                     <div className="relative">
                         <Textarea
                             ref={commentInputRef}
@@ -480,7 +576,7 @@ export function ImageReviewer({ src, comments = [], onAddComment, onResolveComme
                             onClick={submitComment}
                             disabled={!commentContent?.trim()}
                         >
-                            <MessageSquare className="h-5 w-5" />
+                            <Send className="h-5 w-5" />
                         </Button>
                     </div>
                     <p className="text-xs text-center text-slate-400 mt-3">
