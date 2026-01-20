@@ -1,6 +1,7 @@
 "use client"
 
 import { ReviewPlayer } from "@/components/media/review-player"
+import { ImageReviewer } from "@/components/media/image-reviewer"
 import { createClient } from "@/lib/supabase/client"
 import { useState, useEffect } from "react"
 import { toast } from "sonner"
@@ -10,11 +11,12 @@ import { addCommentAction, toggleResolveAction } from "@/app/actions/comments"
 interface ReviewPlayerClientProps {
     assetId: string
     src: string
+    fileType: string
     initialComments: any[]
     currentUser: string
 }
 
-export function ReviewPlayerClient({ assetId, src, initialComments, currentUser }: ReviewPlayerClientProps) {
+export function ReviewPlayerClient({ assetId, src, fileType, initialComments, currentUser }: ReviewPlayerClientProps) {
     const supabase = createClient()
     const router = useRouter()
     const [comments, setComments] = useState(initialComments)
@@ -94,6 +96,21 @@ export function ReviewPlayerClient({ assetId, src, initialComments, currentUser 
         }
     }
 
+    // Determine which viewer to render based on file type
+    const isImage = fileType === 'image'
+
+    if (isImage) {
+        return (
+            <ImageReviewer
+                src={src}
+                comments={comments}
+                onAddComment={handleAddComment}
+                onResolveComment={handleResolveComment}
+            />
+        )
+    }
+
+    // Default: Video player
     return (
         <ReviewPlayer
             src={src}
@@ -103,3 +120,4 @@ export function ReviewPlayerClient({ assetId, src, initialComments, currentUser 
         />
     )
 }
+

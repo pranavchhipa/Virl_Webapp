@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Mail, Phone, MapPin, Send } from "lucide-react";
 import Navbar from "@/components/landing-lovable/Navbar";
@@ -11,6 +11,7 @@ import { Textarea } from "@/components/landing-lovable/ui/textarea";
 import { toast } from "sonner";
 import { submitContactForm } from "@/app/actions/contact";
 import { Loader2 } from "lucide-react";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 
 const contactInfo = [
     {
@@ -42,22 +43,37 @@ const Contact = () => {
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const turnstileRef = useRef<TurnstileInstance>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!turnstileToken) {
+            toast.error("Please complete the security verification.");
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
-            const result = await submitContactForm(formData);
+            const result = await submitContactForm({ ...formData, turnstileToken });
 
             if (result.success) {
                 toast.success("Message sent! We'll get back to you as soon as possible.");
                 setFormData({ name: "", email: "", subject: "", message: "" });
+                setTurnstileToken(null);
+                turnstileRef.current?.reset();
             } else {
                 toast.error(result.error || "Failed to send message.");
+                // Reset Turnstile on error so user can try again
+                turnstileRef.current?.reset();
+                setTurnstileToken(null);
             }
         } catch (error) {
             toast.error("Something went wrong. Please try again.");
+            turnstileRef.current?.reset();
+            setTurnstileToken(null);
         } finally {
             setIsSubmitting(false);
         }
@@ -156,7 +172,25 @@ const Contact = () => {
                                             className="rounded-xl resize-none"
                                         />
                                     </div>
-                                    <Button type="submit" className="w-full btn-primary rounded-xl py-6" disabled={isSubmitting}>
+
+                                    {/* Cloudflare Turnstile Bot Protection */}
+                                    <div className="flex justify-center">
+                                        <Turnstile
+                                            ref={turnstileRef}
+                                            siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!}
+                                            onSuccess={(token) => setTurnstileToken(token)}
+                                            onError={() => {
+                                                toast.error("Security verification failed. Please try again.");
+                                                setTurnstileToken(null);
+                                            }}
+                                            onExpire={() => setTurnstileToken(null)}
+                                            options={{
+                                                theme: 'light',
+                                            }}
+                                        />
+                                    </div>
+
+                                    <Button type="submit" className="w-full btn-primary rounded-xl py-6" disabled={isSubmitting || !turnstileToken}>
                                         {isSubmitting ? (
                                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                                         ) : (

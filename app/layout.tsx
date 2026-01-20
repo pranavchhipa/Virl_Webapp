@@ -15,6 +15,14 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Virl.in | Viral Content OS",
   description: "Enterprise operating system for viral content creation.",
+  icons: {
+    icon: [
+      { url: '/favicon.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
 };
 
 export default function RootLayout({

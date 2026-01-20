@@ -68,6 +68,7 @@ export default async function AssetDetailPage({ params }: { params: Promise<{ id
                 <ReviewPlayerClient
                     assetId={assetId}
                     src={assetUrl}
+                    fileType={asset.file_type}
                     initialComments={comments || []}
                     currentUser={(await supabase.auth.getUser()).data.user?.id!}
                 />

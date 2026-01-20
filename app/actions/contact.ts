@@ -10,9 +10,47 @@ interface ContactFormData {
     email: string;
     subject: string;
     message: string;
+    turnstileToken: string;
+}
+
+// Verify Turnstile token with Cloudflare
+async function verifyTurnstileToken(token: string): Promise<boolean> {
+    const secretKey = process.env.TURNSTILE_SECRET_KEY;
+
+    if (!secretKey) {
+        console.error("Missing TURNSTILE_SECRET_KEY");
+        return false;
+    }
+
+    try {
+        const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                secret: secretKey,
+                response: token,
+            }),
+        });
+
+        const data = await response.json();
+        return data.success === true;
+    } catch (error) {
+        console.error("Turnstile verification error:", error);
+        return false;
+    }
 }
 
 export async function submitContactForm(data: ContactFormData) {
+    // Verify Turnstile token first
+    const isValidToken = await verifyTurnstileToken(data.turnstileToken);
+
+    if (!isValidToken) {
+        console.error("Turnstile verification failed");
+        return { success: false, error: "Security verification failed. Please try again." };
+    }
+
     if (!process.env.RESEND_API_KEY) {
         console.error("Missing RESEND_API_KEY");
         return { success: false, error: "System configuration error. Please try again later." };
@@ -53,3 +91,4 @@ export async function submitContactForm(data: ContactFormData) {
         return { success: false, error: "An unexpected error occurred." };
     }
 }
+

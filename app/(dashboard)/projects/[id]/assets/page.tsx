@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, use, useMemo } from "react"
 // import { useDropzone } from "react-dropzone" // Removed in favor of AssetUploadZone
 import { createClient } from "@/lib/supabase/client"
 import { createAssetRecord, deleteAsset } from "@/app/actions/assets"
+import { getWorkspaceStorage } from "@/app/actions/storage"
 import { Button } from "@/components/ui/button"
 import { UploadCloud, Loader2, ArrowUpCircle, Film, ImageIcon, Share2, Copy, Check, ArrowLeft, FileUp } from "lucide-react"
 import { toast } from "sonner"
@@ -31,6 +32,10 @@ export default function AssetsPage({ params }: { params: Promise<{ id: string }>
     const [filterType, setFilterType] = useState("all")
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
+    // Storage state - fetched from workspace plan
+    const [storageLimit, setStorageLimit] = useState<number>(10 * 1024 * 1024 * 1024) // Default 10GB
+    const [storageUsed, setStorageUsed] = useState<number>(0)
+
     const supabase = createClient()
     const router = useRouter()
 
@@ -40,6 +45,25 @@ export default function AssetsPage({ params }: { params: Promise<{ id: string }>
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null)
     const [isDeleting, setIsDeleting] = useState(false)
+
+    // Fetch workspace storage limits based on plan
+    useEffect(() => {
+        const fetchStorageLimits = async () => {
+            // Get workspace ID from project
+            const { data: project } = await supabase
+                .from('projects')
+                .select('workspace_id')
+                .eq('id', id)
+                .single()
+
+            if (project?.workspace_id) {
+                const storage = await getWorkspaceStorage(project.workspace_id)
+                setStorageLimit(storage.limit)
+                setStorageUsed(storage.used)
+            }
+        }
+        fetchStorageLimits()
+    }, [id, supabase])
 
     // Fetch Assets with uploader info
     useEffect(() => {
@@ -350,13 +374,10 @@ export default function AssetsPage({ params }: { params: Promise<{ id: string }>
         }
     }
 
-    // Calculate total storage used in this project
+    // Calculate total storage used in this project (for local display)
     const totalStorageUsed = useMemo(() => {
         return assets.reduce((sum, asset) => sum + (asset.file_size || 0), 0)
     }, [assets])
-
-    // Storage limit (10GB per project - matches existing implementation)
-    const STORAGE_LIMIT_BYTES = 10 * 1024 * 1024 * 1024 // 10GB
 
     return (
         <div className="h-full flex flex-col bg-slate-50/50 relative">
@@ -383,11 +404,11 @@ export default function AssetsPage({ params }: { params: Promise<{ id: string }>
                 </Dialog>
             </div>
 
-            {/* Storage Usage Card */}
+            {/* Storage Usage Card - Uses plan-based limits */}
             <div className="px-6 mb-6">
                 <StorageLinearCard
-                    usedBytes={totalStorageUsed}
-                    limitBytes={STORAGE_LIMIT_BYTES}
+                    usedBytes={storageUsed}
+                    limitBytes={storageLimit}
                     className="max-w-md"
                 />
             </div>
